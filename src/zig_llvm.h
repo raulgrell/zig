@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2015 Andrew Kelley
+ * Copyright (c) 2016 Andrew Kelley
  *
  * This file is part of zig, which is MIT licensed.
  * See http://opensource.org/licenses/MIT
  */
 
-#ifndef ZIG_ZIG_LLVM_HPP
-#define ZIG_ZIG_LLVM_HPP
+#ifndef ZIG_ZIG_LLVM_H
+#define ZIG_ZIG_LLVM_H
 
 #include <llvm-c/Core.h>
 #include <llvm-c/Analysis.h>

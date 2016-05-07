@@ -5,7 +5,7 @@
  * See http://opensource.org/licenses/MIT
  */
 
-#include "zig_llvm.hpp"
+#include "zig_llvm.h"
 
 
 /*

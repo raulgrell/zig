@@ -30,13 +30,6 @@ struct TypeStructField;
 struct CodeGen;
 struct ConstExprValue;
 
-enum OutType {
-    OutTypeUnknown,
-    OutTypeExe,
-    OutTypeLib,
-    OutTypeObj,
-};
-
 struct ConstEnumValue {
     uint64_t tag;
     ConstExprValue *payload;

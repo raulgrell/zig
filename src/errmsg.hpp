@@ -11,12 +11,6 @@
 #include "buffer.hpp"
 #include "list.hpp"
 
-enum ErrColor {
-    ErrColorAuto,
-    ErrColorOff,
-    ErrColorOn,
-};
-
 struct ErrorMsg {
     int line_start;
     int column_start;
