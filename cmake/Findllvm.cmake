@@ -16,8 +16,13 @@ execute_process(
 
 execute_process(
     COMMAND ${LLVM_CONFIG_EXE} --system-libs
-    OUTPUT_VARIABLE LLVM_SYSTEM_LIBS
+    OUTPUT_VARIABLE LLVM_SYSTEM_LIBS_TMP
     OUTPUT_STRIP_TRAILING_WHITESPACE)
+separate_arguments(LLVM_SYSTEM_LIBS_TMP)
+foreach(lib ${LLVM_SYSTEM_LIBS_TMP})
+    string(REGEX REPLACE "^-l" "" lib_fixed ${lib})
+    list(APPEND LLVM_SYSTEM_LIBS ${lib_fixed})
+endforeach()
 
 execute_process(
     COMMAND ${LLVM_CONFIG_EXE} --libdir

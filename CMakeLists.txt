@@ -20,16 +20,15 @@ set(ZIG_LIBC_INCLUDE_DIR "/usr/include" CACHE STRING "Default native target libc
 set(ZIG_LD_PATH "ld" CACHE STRING "Path to ld for the native target")
 set(ZIG_DYNAMIC_LINKER "" CACHE STRING "Override dynamic linker for native target")
 
-option(ZIG_TEST_COVERAGE "Build Zig with test coverage instrumentation" OFF)
-
 
 
 find_package(llvm)
 include_directories(${LLVM_INCLUDE_DIR})
-link_directories(${LLVM_LIBDIRS})
 
 find_package(clang)
 include_directories(${CLANG_INCLUDE_DIRS})
+
+find_package(zig)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}
@@ -37,32 +36,7 @@ include_directories(
 )
 
 set(ZIG_SOURCES
-    "${CMAKE_SOURCE_DIR}/src/link.cpp"
-    "${CMAKE_SOURCE_DIR}/src/target.cpp"
-    "${CMAKE_SOURCE_DIR}/src/ast_render.cpp"
-    "${CMAKE_SOURCE_DIR}/src/bignum.cpp"
-    "${CMAKE_SOURCE_DIR}/src/tokenizer.cpp"
-    "${CMAKE_SOURCE_DIR}/src/c_tokenizer.cpp"
-    "${CMAKE_SOURCE_DIR}/src/parser.cpp"
-    "${CMAKE_SOURCE_DIR}/src/eval.cpp"
-    "${CMAKE_SOURCE_DIR}/src/analyze.cpp"
-    "${CMAKE_SOURCE_DIR}/src/codegen.cpp"
-    "${CMAKE_SOURCE_DIR}/src/buffer.cpp"
-    "${CMAKE_SOURCE_DIR}/src/error.cpp"
-    "${CMAKE_SOURCE_DIR}/src/main.cpp"
-    "${CMAKE_SOURCE_DIR}/src/os.cpp"
-    "${CMAKE_SOURCE_DIR}/src/util.cpp"
-    "${CMAKE_SOURCE_DIR}/src/errmsg.cpp"
     "${CMAKE_SOURCE_DIR}/src/zig_llvm.cpp"
-    "${CMAKE_SOURCE_DIR}/src/parseh.cpp"
-)
-
-set(TEST_SOURCES
-    "${CMAKE_SOURCE_DIR}/src/buffer.cpp"
-    "${CMAKE_SOURCE_DIR}/src/util.cpp"
-    "${CMAKE_SOURCE_DIR}/src/os.cpp"
-    "${CMAKE_SOURCE_DIR}/src/error.cpp"
-    "${CMAKE_SOURCE_DIR}/test/run_tests.cpp"
 )
 
 set(C_HEADERS
@@ -177,22 +151,38 @@ if(MINGW)
 endif()
 
 set(EXE_CFLAGS "-std=c++11 -fno-exceptions -fno-rtti -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -D__USE_MINGW_ANSI_STDIO -Werror=strict-prototypes -Werror=old-style-definition -Werror=missing-prototypes")
-set(EXE_LDFLAGS " ")
-if(ZIG_TEST_COVERAGE)
-    set(EXE_CFLAGS "${EXE_CFLAGS} -fprofile-arcs -ftest-coverage")
-    set(EXE_LDFLAGS "-fprofile-arcs -ftest-coverage")
-endif()
 
-add_executable(zig ${ZIG_SOURCES})
-set_target_properties(zig PROPERTIES
+add_library(cpp STATIC ${ZIG_SOURCES})
+set_target_properties(cpp PROPERTIES
     COMPILE_FLAGS ${EXE_CFLAGS}
-    LINK_FLAGS ${EXE_LDFLAGS}
 )
-target_link_libraries(zig LINK_PUBLIC
-    ${CLANG_LIBRARIES}
-    ${LLVM_LIBRARIES}
+
+list(APPEND COMPILE_ARGS "build")
+list(APPEND COMPILE_ARGS "../src/main.zig")
+list(APPEND COMPILE_ARGS "--export")
+list(APPEND COMPILE_ARGS "exe")
+list(APPEND COMPILE_ARGS "--name")
+list(APPEND COMPILE_ARGS "zig")
+list(APPEND COMPILE_ARGS "--library")
+list(APPEND COMPILE_ARGS "libcpp.a")
+foreach(libdir ${LLVM_LIBDIRS})
+    list(APPEND COMPILE_ARGS "--library-path")
+    list(APPEND COMPILE_ARGS ${libdir})
+endforeach()
+
+foreach(lib ${CLANG_LIBRARIES} ${LLVM_LIBRARIES})
+    list(APPEND COMPILE_ARGS "--library")
+    list(APPEND COMPILE_ARGS ${lib})
+endforeach()
+list(APPEND COMPILE_ARGS "--library")
+list(APPEND COMPILE_ARGS "c")
+
+add_custom_target(zig ALL
+    DEPENDS cpp
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMAND ${ZIG_BINARY} ${COMPILE_ARGS}
 )
-install(TARGETS zig DESTINATION bin)
+install(FILES "${CMAKE_BINARY_DIR}/zig" DESTINATION bin)
 
 install(FILES ${C_HEADERS} DESTINATION ${C_HEADERS_DEST})
 
@@ -213,23 +203,3 @@ install(FILES "${CMAKE_SOURCE_DIR}/std/math.zig" DESTINATION "${ZIG_STD_DEST}")
 install(FILES "${CMAKE_SOURCE_DIR}/std/index.zig" DESTINATION "${ZIG_STD_DEST}")
 install(FILES "${CMAKE_SOURCE_DIR}/std/linux_x86_64.zig" DESTINATION "${ZIG_STD_DEST}")
 install(FILES "${CMAKE_SOURCE_DIR}/std/linux_i386.zig" DESTINATION "${ZIG_STD_DEST}")
-
-add_executable(run_tests ${TEST_SOURCES})
-target_link_libraries(run_tests)
-set_target_properties(run_tests PROPERTIES
-    COMPILE_FLAGS ${EXE_CFLAGS}
-    LINK_FLAGS ${EXE_LDFLAGS}
-)
-
-if (ZIG_TEST_COVERAGE)
-    add_custom_target(coverage
-        DEPENDS run_tests
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        COMMAND lcov --directory . --zerocounters --rc lcov_branch_coverage=1
-        COMMAND ./run_tests
-        COMMAND lcov --directory . --capture --output-file coverage.info --rc lcov_branch_coverage=1
-        COMMAND lcov --remove coverage.info '/usr/*' --output-file coverage.info.cleaned --rc lcov_branch_coverage=1
-        COMMAND genhtml -o coverage coverage.info.cleaned --rc lcov_branch_coverage=1
-        COMMAND rm coverage.info coverage.info.cleaned
-    )
-endif()
