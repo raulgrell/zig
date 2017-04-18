@@ -602,7 +602,7 @@ static void ir_print_truncate(IrPrint *irp, IrInstructionTruncate *instruction) 
 }
 
 static void ir_print_int_type(IrPrint *irp, IrInstructionIntType *instruction) {
-    fprintf(irp->f, "@intType(");
+    fprintf(irp->f, "@IntType(");
     ir_print_other_instruction(irp, instruction->is_signed);
     fprintf(irp->f, ", ");
     ir_print_other_instruction(irp, instruction->bit_count);
@@ -873,6 +873,16 @@ static void ir_print_panic(IrPrint *irp, IrInstructionPanic *instruction) {
 static void ir_print_set_fn_ref_inline(IrPrint *irp, IrInstructionSetFnRefInline *instruction) {
     fprintf(irp->f, "inline ");
     ir_print_other_instruction(irp, instruction->fn_ref);
+}
+
+static void ir_print_field_parent_ptr(IrPrint *irp, IrInstructionFieldParentPtr *instruction) {
+    fprintf(irp->f, "@fieldParentPtr(");
+    ir_print_other_instruction(irp, instruction->type_value);
+    fprintf(irp->f, ",");
+    ir_print_other_instruction(irp, instruction->field_name);
+    fprintf(irp->f, ",");
+    ir_print_other_instruction(irp, instruction->field_ptr);
+    fprintf(irp->f, ")");
 }
 
 static void ir_print_instruction(IrPrint *irp, IrInstruction *instruction) {
@@ -1161,6 +1171,9 @@ static void ir_print_instruction(IrPrint *irp, IrInstruction *instruction) {
             break;
         case IrInstructionIdSetFnRefInline:
             ir_print_set_fn_ref_inline(irp, (IrInstructionSetFnRefInline *)instruction);
+            break;
+        case IrInstructionIdFieldParentPtr:
+            ir_print_field_parent_ptr(irp, (IrInstructionFieldParentPtr *)instruction);
             break;
     }
     fprintf(irp->f, "\n");

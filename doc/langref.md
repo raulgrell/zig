@@ -584,7 +584,7 @@ to stderr, and then a newline at the end.
 This function can be used to do "printf debugging" on compile-time executing
 code.
 
-### @intType(comptime is_signed: bool, comptime bit_count: u8) -> type
+### @IntType(comptime is_signed: bool, comptime bit_count: u8) -> type
 
 This function returns an integer type with the given signness and bit count.
 
@@ -630,3 +630,7 @@ Converts an integer to a pointer. To convert the other way, use `usize(ptr)`.
 ### @enumTagName(value: var) -> []const u8
 
 Converts an enum tag name to a slice of bytes. Example:
+
+### @fieldParentPtr(comptime ParentType: type, comptime field_name: []const u8, field_ptr: &T) -> &ParentType
+
+Given a pointer to a field, returns the base pointer of a struct.

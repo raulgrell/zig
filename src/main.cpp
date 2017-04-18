@@ -218,6 +218,7 @@ int main(int argc, char **argv) {
                         "  --build-file [file]    Override path to build.zig.\n"
                         "  --verbose              Print commands before executing them.\n"
                         "  --debug-build-verbose  Print verbose debugging information for the build system itself.\n"
+                        "  --prefix [prefix]      Override default install prefix.\n"
                 , zig_exe_path);
                 return 0;
             }
@@ -247,8 +248,6 @@ int main(int argc, char **argv) {
                 fprintf(stderr, " %s", args.at(i));
             }
             fprintf(stderr, "\n");
-        } else {
-            os_delete_file(buf_create_from_str("./build"));
         }
         return (term.how == TerminationIdClean) ? term.code : -1;
     }

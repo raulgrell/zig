@@ -41,6 +41,7 @@ pub const ChildProcess = struct {
         }
     }
 
+    /// Blocks until child process terminates and then cleans up all resources.
     pub fn wait(self: &ChildProcess) -> %Term {
         defer {
             os.posixClose(self.err_pipe[0]);
@@ -141,7 +142,7 @@ pub const ChildProcess = struct {
         const pid_err = posix.getErrno(pid);
         if (pid_err > 0) {
             return switch (pid_err) {
-                errno.EAGAIN, errno.ENOMEM, errno.ENOSYS => error.SysResources,
+                errno.EAGAIN, errno.ENOMEM, errno.ENOSYS => error.SystemResources,
                 else => error.Unexpected,
             };
         }
@@ -209,7 +210,7 @@ fn makePipe() -> %[2]i32 {
     const err = posix.getErrno(posix.pipe(&fds));
     if (err > 0) {
         return switch (err) {
-            errno.EMFILE, errno.ENFILE => error.SysResources,
+            errno.EMFILE, errno.ENFILE => error.SystemResources,
             else => error.Unexpected,
         }
     }
@@ -228,7 +229,7 @@ fn forkChildErrReport(fd: i32, err: error) -> noreturn {
     posix.exit(1);
 }
 
-const ErrInt = @intType(false, @sizeOf(error) * 8);
+const ErrInt = @IntType(false, @sizeOf(error) * 8);
 fn writeIntFd(fd: i32, value: ErrInt) -> %void {
     var bytes: [@sizeOf(ErrInt)]u8 = undefined;
     mem.writeInt(bytes[0...], value, true);
@@ -241,7 +242,7 @@ fn writeIntFd(fd: i32, value: ErrInt) -> %void {
             switch (err) {
                 errno.EINTR => continue,
                 errno.EINVAL => unreachable,
-                else => return error.SysResources,
+                else => return error.SystemResources,
             }
         }
         index += amt_written;
@@ -259,7 +260,7 @@ fn readIntFd(fd: i32) -> %ErrInt {
             switch (err) {
                 errno.EINTR => continue,
                 errno.EINVAL => unreachable,
-                else => return error.SysResources,
+                else => return error.SystemResources,
             }
         }
         index += amt_written;

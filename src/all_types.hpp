@@ -320,6 +320,7 @@ enum NodeType {
     NodeTypeFnDecl,
     NodeTypeParamDecl,
     NodeTypeBlock,
+    NodeTypeGroupedExpr,
     NodeTypeReturnExpr,
     NodeTypeDefer,
     NodeTypeVariableDeclaration,
@@ -793,6 +794,7 @@ struct AstNode {
         AstNodeFnProto fn_proto;
         AstNodeParamDecl param_decl;
         AstNodeBlock block;
+        AstNode * grouped_expr;
         AstNodeReturnExpr return_expr;
         AstNodeDefer defer;
         AstNodeVariableDeclaration variable_declaration;
@@ -1187,6 +1189,7 @@ enum BuiltinFnId {
     BuiltinFnIdPtrCast,
     BuiltinFnIdIntToPtr,
     BuiltinFnIdEnumTagName,
+    BuiltinFnIdFieldParentPtr,
 };
 
 struct BuiltinFnEntry {
@@ -1209,7 +1212,6 @@ enum PanicMsgId {
     PanicMsgIdExactDivisionRemainder,
     PanicMsgIdSliceWidenRemainder,
     PanicMsgIdUnwrapMaybeFail,
-    PanicMsgIdUnwrapErrFail,
     PanicMsgIdInvalidErrorCode,
 
     PanicMsgIdCount,
@@ -1443,6 +1445,8 @@ struct CodeGen {
     ZigList<AstNode *> error_decls;
     bool generate_error_name_table;
     LLVMValueRef err_name_table;
+    size_t largest_err_name_len;
+    LLVMValueRef safety_crash_err_fn;
 
     IrInstruction *invalid_instruction;
     ConstExprValue const_void_val;
@@ -1733,6 +1737,7 @@ enum IrInstructionId {
     IrInstructionIdPanic,
     IrInstructionIdEnumTagName,
     IrInstructionIdSetFnRefInline,
+    IrInstructionIdFieldParentPtr,
 };
 
 struct IrInstruction {
@@ -2483,6 +2488,15 @@ struct IrInstructionSetFnRefInline {
     IrInstruction base;
 
     IrInstruction *fn_ref;
+};
+
+struct IrInstructionFieldParentPtr {
+    IrInstruction base;
+
+    IrInstruction *type_value;
+    IrInstruction *field_name;
+    IrInstruction *field_ptr;
+    TypeStructField *field;
 };
 
 static const size_t slice_ptr_index = 0;

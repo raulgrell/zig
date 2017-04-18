@@ -204,6 +204,7 @@ install(TARGETS zig DESTINATION bin)
 
 install(FILES ${C_HEADERS} DESTINATION ${C_HEADERS_DEST})
 
+install(FILES "${CMAKE_SOURCE_DIR}/std/base64.zig" DESTINATION "${ZIG_STD_DEST}")
 install(FILES "${CMAKE_SOURCE_DIR}/std/buf_map.zig" DESTINATION "${ZIG_STD_DEST}")
 install(FILES "${CMAKE_SOURCE_DIR}/std/buf_set.zig" DESTINATION "${ZIG_STD_DEST}")
 install(FILES "${CMAKE_SOURCE_DIR}/std/build.zig" DESTINATION "${ZIG_STD_DEST}")
@@ -233,6 +234,7 @@ install(FILES "${CMAKE_SOURCE_DIR}/std/os/index.zig" DESTINATION "${ZIG_STD_DEST
 install(FILES "${CMAKE_SOURCE_DIR}/std/os/linux.zig" DESTINATION "${ZIG_STD_DEST}/os")
 install(FILES "${CMAKE_SOURCE_DIR}/std/os/linux_i386.zig" DESTINATION "${ZIG_STD_DEST}/os")
 install(FILES "${CMAKE_SOURCE_DIR}/std/os/linux_x86_64.zig" DESTINATION "${ZIG_STD_DEST}/os")
+install(FILES "${CMAKE_SOURCE_DIR}/std/os/path.zig" DESTINATION "${ZIG_STD_DEST}/os")
 install(FILES "${CMAKE_SOURCE_DIR}/std/os/windows.zig" DESTINATION "${ZIG_STD_DEST}/os")
 install(FILES "${CMAKE_SOURCE_DIR}/std/rand.zig" DESTINATION "${ZIG_STD_DEST}")
 install(FILES "${CMAKE_SOURCE_DIR}/std/rand_test.zig" DESTINATION "${ZIG_STD_DEST}")
