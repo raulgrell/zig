@@ -1459,6 +1459,9 @@ struct CodeGen {
     ZigList<Buf *> link_objects;
 
     ZigList<TypeTableEntry *> name_table_enums;
+
+    Buf *test_filter;
+    Buf *test_name_prefix;
 };
 
 enum VarLinkage {
