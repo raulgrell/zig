@@ -11,6 +11,7 @@ pub const DynLib = struct {
     map_addr: usize,
     map_size: usize,
 
+    /// Opens the dynamic library at `path`
     /// Trusts the file
     pub fn open(allocator: *mem.Allocator, path: []const u8) !DynLib {
         const fd = try std.os.posixOpen(allocator, path, 0, linux.O_RDONLY | linux.O_CLOEXEC);
@@ -39,12 +40,14 @@ pub const DynLib = struct {
         };
     }
 
+    /// Unmaps and closes the dynamic library file
     pub fn close(self: *DynLib) void {
         _ = linux.munmap(self.map_addr, self.map_size);
         std.os.close(self.fd);
         self.* = undefined;
     }
 
+    /// Looks up a symbol in the dynamic library
     pub fn lookup(self: *DynLib, name: []const u8) ?usize {
         return self.elf_lib.lookup("", name);
     }

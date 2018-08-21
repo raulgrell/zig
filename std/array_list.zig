@@ -20,6 +20,7 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
         len: usize,
         allocator: *Allocator,
 
+        /// Initializes a list that manages memory for items using `allocator`
         /// Deinitialize with `deinit` or use `toOwnedSlice`.
         pub fn init(allocator: *Allocator) Self {
             return Self{
@@ -29,18 +30,22 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
             };
         }
 
+        /// Frees the list's allocated memory
         pub fn deinit(self: Self) void {
             self.allocator.free(self.items);
         }
 
+        /// Returns a slice containing all items
         pub fn toSlice(self: Self) []align(A) T {
             return self.items[0..self.len];
         }
 
+        /// Returns a const slice containint all items
         pub fn toSliceConst(self: Self) []align(A) const T {
             return self.items[0..self.len];
         }
 
+        /// Returns the item at `i`
         pub fn at(self: Self, i: usize) T {
             return self.toSliceConst()[i];
         }
@@ -58,6 +63,7 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
             self.items[i] = item;
         }
 
+        /// Returns the number of items in the list
         pub fn count(self: Self) usize {
             return self.len;
         }
@@ -81,6 +87,7 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
             return result;
         }
 
+        /// Inserts `item` at index `n`
         pub fn insert(self: *Self, n: usize, item: T) !void {
             try self.ensureCapacity(self.len + 1);
             self.len += 1;
@@ -89,6 +96,7 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
             self.items[n] = item;
         }
 
+        /// Inserts the elements `items` into the the list at index `n`
         pub fn insertSlice(self: *Self, n: usize, items: []align(A) const T) !void {
             try self.ensureCapacity(self.len + items.len);
             self.len += items.len;
@@ -97,6 +105,7 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
             mem.copy(T, self.items[n .. n + items.len], items);
         }
 
+        /// Inserts `item` at the end of the list
         pub fn append(self: *Self, item: T) !void {
             const new_item_ptr = try self.addOne();
             new_item_ptr.* = item;
@@ -121,22 +130,29 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
             return self.swapRemove(i);
         }
 
+        /// Inserts the elements of `items` at the end of the list.
         pub fn appendSlice(self: *Self, items: []align(A) const T) !void {
             try self.ensureCapacity(self.len + items.len);
             mem.copy(T, self.items[self.len..], items);
             self.len += items.len;
         }
 
+        /// Sets the length of the list to `new_len`, returning an error if
+        /// it is unable to allocate enough memory.
         pub fn resize(self: *Self, new_len: usize) !void {
             try self.ensureCapacity(new_len);
             self.len = new_len;
         }
 
+        /// Sets the length of the list to `new_len`, asserting it is smaller than
+        /// the current length.
         pub fn shrink(self: *Self, new_len: usize) void {
             assert(new_len <= self.len);
             self.len = new_len;
         }
 
+        /// Ensures the list has enough memory to hold `new_capacity` items,
+        /// reallocating `self.items` if necessary
         pub fn ensureCapacity(self: *Self, new_capacity: usize) !void {
             var better_capacity = self.items.len;
             if (better_capacity >= new_capacity) return;
@@ -147,6 +163,8 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
             self.items = try self.allocator.alignedRealloc(T, A, self.items, better_capacity);
         }
 
+        /// Increases the length of the list, and capacity if necessary, returning
+        /// a pointer to the new item or an error if allocation fails.
         pub fn addOne(self: *Self) !*T {
             const new_length = self.len + 1;
             try self.ensureCapacity(new_length);
@@ -155,21 +173,77 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
             return result;
         }
 
+        /// Removes and returns the last item of the list
         pub fn pop(self: *Self) T {
             self.len -= 1;
             return self.items[self.len];
         }
 
+        /// Removes and returns the last item of the list, returning null if the
+        /// list is empty.
         pub fn popOrNull(self: *Self) ?T {
             if (self.len == 0) return null;
             return self.pop();
         }
 
+        /// Removes the item at `index`
+        pub fn remove(self: *Self, index: usize) !void {
+            try remove_range(self, index, 1);
+        }
+
+        /// Removes the items in `self.items[index..index + length]`, copying
+        /// the items that followed it into their positions
+        pub fn removeRange(self: *Self, index: usize, length: usize) !void {
+            if (index > self.len or index + length > self.len) return error.InvalidRange;
+            mem.copy(T, self.items[n .. self.items.len - length], self.items[n + length .. self.len]);
+            self.len -= length;
+        }
+
+        /// Removes the items in `self.items[index..index + length]`, replacing them
+        /// with the items in `array`.
+        pub fn splice(self: *Self, index: usize, length: usize, array: []const T) !void {
+            if (index > self.len or index + length > self.len) return error.InvalidRange;
+            
+            if (length == array.len) {
+                mem.copy(T, self.items[index .. index + array.len], array);
+                return;
+            }
+            
+            const new_len = self.len + array.len - length;
+            try self.ensureCapacity(new_len);
+            mem.copy(T, self.items[index + array.len .. index + new_len], self.items[index + length .. index + self.len]);
+            mem.copy(T, self.items[index .. index + array.len], array);
+            self.len += adj;
+        }
+
+        /// Returns the first element in the list for which `eql_fn(item, data)` returns true
+        pub fn indexOfFirst(self: *Self, eql_fn: EqualityFunc, data: T) !usize {
+            for (self.items[0..self.len]) | item, i | {
+                if(eql_fn(item, data)) return i;
+            }
+            return error.NotFound;
+        }
+
+        /// Returns the last element in the list for which `eql_fn(item, data)` returns true
+        pub fn indexOfLast(self: *Self, eql_fn: EqualityFunc, data: T) !usize {
+            for (self.items[0..self.len]) | item, i | {
+                if(eql_fn(item, data)) return i;
+            }
+            return error.NotFound;
+        }
+
+        /// Removes all items from the list without deallocating the used memory.
+        pub fn clear(self: *Self) void {
+            self.len = 0;
+        }
+
         pub const Iterator = struct {
             list: *const Self,
-            // how many items have we returned
+            /// The number of items returned
             count: usize,
 
+            /// Returns the next item in the list, or null if the iterator has
+            /// reached the end.
             pub fn next(it: *Iterator) ?T {
                 if (it.count >= it.list.len) return null;
                 const val = it.list.at(it.count);
@@ -177,11 +251,13 @@ pub fn AlignedArrayList(comptime T: type, comptime A: u29) type {
                 return val;
             }
 
+            /// Resets the iterator count
             pub fn reset(it: *Iterator) void {
                 it.count = 0;
             }
         };
 
+        /// Returns an Iterator for the list, starting at the first item.
         pub fn iterator(self: *const Self) Iterator {
             return Iterator{
                 .list = self,

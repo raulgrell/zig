@@ -170,11 +170,13 @@ pub fn copyBackwards(comptime T: type, dest: []T, source: []const T) void {
     }
 }
 
+/// Sets every element of `dest` to `value`
 pub fn set(comptime T: type, dest: []T, value: T) void {
     for (dest) |*d|
         d.* = value;
 }
 
+/// Zeroes out slice `s`
 pub fn secureZero(comptime T: type, s: []T) void {
     // NOTE: We do not use a volatile slice cast here since LLVM cannot
     // see that it can be replaced by a memset.
@@ -193,6 +195,7 @@ test "mem.secureZero" {
     assert(eql(u8, a[0..], b[0..]));
 }
 
+/// Compares slices `lhs` and `rhs`, returning the lexicographic value of `lhs`
 pub fn compare(comptime T: type, lhs: []const T, rhs: []const T) Compare {
     const n = math.min(lhs.len, rhs.len);
     var i: usize = 0;
@@ -312,6 +315,7 @@ pub fn lastIndexOfScalar(comptime T: type, slice: []const T, value: T) ?usize {
     return null;
 }
 
+/// Returns the index within `slice` of `value` starting at `start_index`
 pub fn indexOfScalarPos(comptime T: type, slice: []const T, start_index: usize, value: T) ?usize {
     var i: usize = start_index;
     while (i < slice.len) : (i += 1) {
@@ -320,10 +324,12 @@ pub fn indexOfScalarPos(comptime T: type, slice: []const T, start_index: usize, 
     return null;
 }
 
+/// Returns the first index within `slice` of any of `values`
 pub fn indexOfAny(comptime T: type, slice: []const T, values: []const T) ?usize {
     return indexOfAnyPos(T, slice, 0, values);
 }
 
+/// Returns the last index within `slice` of any of `values`
 pub fn lastIndexOfAny(comptime T: type, slice: []const T, values: []const T) ?usize {
     var i: usize = slice.len;
     while (i != 0) {
@@ -335,6 +341,8 @@ pub fn lastIndexOfAny(comptime T: type, slice: []const T, values: []const T) ?us
     return null;
 }
 
+
+/// Returns the last index within `slice` of any of `values` starting at `start_index`
 pub fn indexOfAnyPos(comptime T: type, slice: []const T, start_index: usize, values: []const T) ?usize {
     var i: usize = start_index;
     while (i < slice.len) : (i += 1) {
@@ -345,6 +353,7 @@ pub fn indexOfAnyPos(comptime T: type, slice: []const T, start_index: usize, val
     return null;
 }
 
+/// Returns the index in `haystack` of `needle`
 pub fn indexOf(comptime T: type, haystack: []const T, needle: []const T) ?usize {
     return indexOfPos(T, haystack, 0, needle);
 }
@@ -362,8 +371,9 @@ pub fn lastIndexOf(comptime T: type, haystack: []const T, needle: []const T) ?us
     }
 }
 
-// TODO boyer-moore algorithm
+/// Returns the index in `haystack` of `needle` starting at index `start_index`
 pub fn indexOfPos(comptime T: type, haystack: []const T, start_index: usize, needle: []const T) ?usize {
+    // TODO boyer-moore algorithm
     if (needle.len > haystack.len) return null;
 
     var i: usize = start_index;
@@ -476,6 +486,7 @@ pub fn writeInt(buf: []u8, value: var, endian: builtin.Endian) void {
     assert(bits == 0);
 }
 
+/// Returns a simple hash of `k`
 pub fn hash_slice_u8(k: []const u8) u32 {
     // FNV 32-bit hash
     var h: u32 = 2166136261;
@@ -485,6 +496,7 @@ pub fn hash_slice_u8(k: []const u8) u32 {
     return h;
 }
 
+/// Returns whether two u8 slices are equal
 pub fn eql_slice_u8(a: []const u8, b: []const u8) bool {
     return eql(u8, a, b);
 }
@@ -509,6 +521,7 @@ test "mem.split" {
     assert(it.next() == null);
 }
 
+/// Returns whether slice `haystack` starts with `needle`
 pub fn startsWith(comptime T: type, haystack: []const T, needle: []const T) bool {
     return if (needle.len > haystack.len) false else eql(T, haystack[0..needle.len], needle);
 }
@@ -518,6 +531,7 @@ test "mem.startsWith" {
     assert(!startsWith(u8, "Needle in haystack", "haystack"));
 }
 
+/// Returns whether slice `haystack` ends with `needle`
 pub fn endsWith(comptime T: type, haystack: []const T, needle: []const T) bool {
     return if (needle.len > haystack.len) false else eql(T, haystack[haystack.len - needle.len ..], needle);
 }
@@ -532,6 +546,7 @@ pub const SplitIterator = struct {
     split_bytes: []const u8,
     index: usize,
 
+    /// Returns the next string segment in the iteration
     pub fn next(self: *SplitIterator) ?[]const u8 {
         // move to beginning of token
         while (self.index < self.buffer.len and self.isSplitByte(self.buffer[self.index])) : (self.index += 1) {}
@@ -700,6 +715,7 @@ fn testWriteIntImpl() void {
     }));
 }
 
+/// Returns the smallest value in `slice`
 pub fn min(comptime T: type, slice: []const T) T {
     var best = slice[0];
     for (slice[1..]) |item| {
@@ -712,6 +728,7 @@ test "mem.min" {
     assert(min(u8, "abcdefg") == 'a');
 }
 
+/// Returns the largest value in `slice`
 pub fn max(comptime T: type, slice: []const T) T {
     var best = slice[0];
     for (slice[1..]) |item| {
@@ -724,6 +741,7 @@ test "mem.max" {
     assert(max(u8, "abcdefg") == 'g');
 }
 
+/// Swaps the values of `a` and `b`
 pub fn swap(comptime T: type, a: *T, b: *T) void {
     const tmp = a.*;
     a.* = b.*;

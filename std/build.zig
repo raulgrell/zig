@@ -82,6 +82,7 @@ pub const Builder = struct {
         description: []const u8,
     };
 
+    /// Initializes the builder
     pub fn init(allocator: *Allocator, zig_exe: []const u8, build_root: []const u8, cache_root: []const u8) Builder {
         var self = Builder{
             .zig_exe = zig_exe,
@@ -127,6 +128,7 @@ pub const Builder = struct {
         return self;
     }
 
+    /// Deinitializes the builder
     pub fn deinit(self: *Builder) void {
         self.lib_paths.deinit();
         self.include_paths.deinit();
@@ -135,76 +137,92 @@ pub const Builder = struct {
         self.top_level_steps.deinit();
     }
 
+    /// Sets the install prefix. This is where the build artifacts will be installed.
     pub fn setInstallPrefix(self: *Builder, maybe_prefix: ?[]const u8) void {
         self.prefix = maybe_prefix orelse "/usr/local"; // TODO better default
         self.lib_dir = os.path.join(self.allocator, self.prefix, "lib") catch unreachable;
         self.exe_dir = os.path.join(self.allocator, self.prefix, "bin") catch unreachable;
     }
 
+    /// Adds an executable to the build
     pub fn addExecutable(self: *Builder, name: []const u8, root_src: ?[]const u8) *LibExeObjStep {
         return LibExeObjStep.createExecutable(self, name, root_src);
     }
 
+    /// Adds an object to the build
     pub fn addObject(self: *Builder, name: []const u8, root_src: []const u8) *LibExeObjStep {
         return LibExeObjStep.createObject(self, name, root_src);
     }
 
+    /// Adds a shared library to the build steps
     pub fn addSharedLibrary(self: *Builder, name: []const u8, root_src: ?[]const u8, ver: *const Version) *LibExeObjStep {
         return LibExeObjStep.createSharedLibrary(self, name, root_src, ver);
     }
 
+    /// Adds a static library to the build steps
     pub fn addStaticLibrary(self: *Builder, name: []const u8, root_src: ?[]const u8) *LibExeObjStep {
         return LibExeObjStep.createStaticLibrary(self, name, root_src);
     }
 
+    /// Adds a test to the build steps
     pub fn addTest(self: *Builder, root_src: []const u8) *TestStep {
         const test_step = self.allocator.create(TestStep.init(self, root_src)) catch unreachable;
         return test_step;
     }
 
+    /// Adds and assemble step to the build
     pub fn addAssemble(self: *Builder, name: []const u8, src: []const u8) *LibExeObjStep {
         const obj_step = LibExeObjStep.createObject(self, name, null);
         obj_step.addAssemblyFile(src);
         return obj_step;
     }
 
+    /// Adds a C static library to the build steps
     pub fn addCStaticLibrary(self: *Builder, name: []const u8) *LibExeObjStep {
         return LibExeObjStep.createCStaticLibrary(self, name);
     }
 
+    /// Adds a C shared library to the build steps
     pub fn addCSharedLibrary(self: *Builder, name: []const u8, ver: *const Version) *LibExeObjStep {
         return LibExeObjStep.createCSharedLibrary(self, name, ver);
     }
 
+    /// Adds a C executable to the build steps
     pub fn addCExecutable(self: *Builder, name: []const u8) *LibExeObjStep {
         return LibExeObjStep.createCExecutable(self, name);
     }
 
+    /// Adds a C object to the build steps
     pub fn addCObject(self: *Builder, name: []const u8, src: []const u8) *LibExeObjStep {
         return LibExeObjStep.createCObject(self, name, src);
     }
 
+    /// Adds a command to the builder
     /// ::argv is copied.
     pub fn addCommand(self: *Builder, cwd: ?[]const u8, env_map: *const BufMap, argv: []const []const u8) *CommandStep {
         return CommandStep.create(self, cwd, env_map, argv);
     }
 
+    /// Adds a write file step to the build
     pub fn addWriteFile(self: *Builder, file_path: []const u8, data: []const u8) *WriteFileStep {
         const write_file_step = self.allocator.create(WriteFileStep.init(self, file_path, data)) catch unreachable;
         return write_file_step;
     }
 
+    /// Adds a log step to the build
     pub fn addLog(self: *Builder, comptime format: []const u8, args: ...) *LogStep {
         const data = self.fmt(format, args);
         const log_step = self.allocator.create(LogStep.init(self, data)) catch unreachable;
         return log_step;
     }
 
+    /// Adds a remove directory step to the build
     pub fn addRemoveDirTree(self: *Builder, dir_path: []const u8) *RemoveDirStep {
         const remove_dir_step = self.allocator.create(RemoveDirStep.init(self, dir_path)) catch unreachable;
         return remove_dir_step;
     }
 
+    /// Returns a Version struct from the provided parameters
     pub fn version(self: *const Builder, major: u32, minor: u32, patch: u32) Version {
         return Version{
             .major = major,
@@ -213,18 +231,22 @@ pub const Builder = struct {
         };
     }
 
+    /// Adds a path to the C include list 
     pub fn addCIncludePath(self: *Builder, path: []const u8) void {
         self.include_paths.append(path) catch unreachable;
     }
 
+    /// Adds a path to the RPath list for dynamic libraries
     pub fn addRPath(self: *Builder, path: []const u8) void {
         self.rpaths.append(path) catch unreachable;
     }
 
+    /// Adds a path to the library path list
     pub fn addLibPath(self: *Builder, path: []const u8) void {
         self.lib_paths.append(path) catch unreachable;
     }
 
+    /// Collects all wanted according to `step_names` and runs each of them in order.
     pub fn make(self: *Builder, step_names: []const []const u8) !void {
         var wanted_steps = ArrayList(*Step).init(self.allocator);
         defer wanted_steps.deinit();
@@ -243,6 +265,7 @@ pub const Builder = struct {
         }
     }
 
+    /// Returns the builder's install step
     pub fn getInstallStep(self: *Builder) *Step {
         if (self.have_install_step) return &self.install_tls.step;
 
@@ -251,6 +274,7 @@ pub const Builder = struct {
         return &self.install_tls.step;
     }
 
+    /// Returns the builder's uninstall step
     pub fn getUninstallStep(self: *Builder) *Step {
         if (self.have_uninstall_step) return &self.uninstall_tls.step;
 
@@ -259,6 +283,7 @@ pub const Builder = struct {
         return &self.uninstall_tls.step;
     }
 
+    /// Performs the uninstall step
     fn makeUninstall(uninstall_step: *Step) error!void {
         const uninstall_tls = @fieldParentPtr(TopLevelStep, "step", uninstall_step);
         const self = @fieldParentPtr(Builder, "uninstall_tls", uninstall_tls);
@@ -273,6 +298,7 @@ pub const Builder = struct {
         // TODO remove empty directories
     }
 
+    /// Makes the provided step `s` and all of its dependencies
     fn makeOneStep(self: *Builder, s: *Step) error!void {
         if (s.loop_flag) {
             warn("Dependency loop detected:\n  {}\n", s.name);
@@ -294,6 +320,7 @@ pub const Builder = struct {
         try s.make();
     }
 
+    /// Returns the step corresponding to `name`
     fn getTopLevelStepByName(self: *Builder, name: []const u8) !*Step {
         for (self.top_level_steps.toSliceConst()) |top_level_step| {
             if (mem.eql(u8, top_level_step.step.name, name)) {
@@ -346,6 +373,7 @@ pub const Builder = struct {
         }
     }
 
+    /// Adds an option to the build command
     pub fn option(self: *Builder, comptime T: type, name: []const u8, description: []const u8) ?T {
         const type_id = comptime typeToEnum(T);
         const available_option = AvailableOption{
@@ -399,6 +427,7 @@ pub const Builder = struct {
         }
     }
 
+    /// Creates an empty step at the top level
     pub fn step(self: *Builder, name: []const u8, description: []const u8) *Step {
         const step_info = self.allocator.create(TopLevelStep{
             .step = Step.initNoOp(name, self.allocator),
@@ -408,6 +437,7 @@ pub const Builder = struct {
         return &step_info.step;
     }
 
+    /// Returns the stardard build mode from the build command
     pub fn standardReleaseOptions(self: *Builder) builtin.Mode {
         if (self.release_mode) |mode| return mode;
 
@@ -424,6 +454,7 @@ pub const Builder = struct {
         return mode;
     }
 
+    /// Adds an option to the build command
     pub fn addUserInputOption(self: *Builder, name: []const u8, value: []const u8) !bool {
         const gop = try self.user_input_options.getOrPut(name);
         if (!gop.found_existing) {
@@ -465,6 +496,7 @@ pub const Builder = struct {
         return false;
     }
 
+    /// Adds a flag to the build commnd
     pub fn addUserInputFlag(self: *Builder, name: []const u8) !bool {
         const gop = try self.user_input_options.getOrPut(name);
         if (!gop.found_existing) {
@@ -508,6 +540,7 @@ pub const Builder = struct {
         self.invalid_user_input = true;
     }
 
+    /// Returns the name of the type `id`
     pub fn typeIdName(id: TypeId) []const u8 {
         return switch (id) {
             TypeId.Bool => "bool",
@@ -518,6 +551,7 @@ pub const Builder = struct {
         };
     }
 
+    /// Returns whether user input failed
     pub fn validateUserInputDidItFail(self: *Builder) bool {
         // make sure all args are used
         var it = self.user_input_options.iterator();
@@ -577,6 +611,7 @@ pub const Builder = struct {
         }
     }
 
+    /// Creates a new directory in the build root
     pub fn makePath(self: *Builder, path: []const u8) !void {
         os.makePath(self.allocator, self.pathFromRoot(path)) catch |err| {
             warn("Unable to create path {}: {}\n", path, @errorName(err));
@@ -584,10 +619,12 @@ pub const Builder = struct {
         };
     }
 
+    /// Add `artifact` to the install step
     pub fn installArtifact(self: *Builder, artifact: *LibExeObjStep) void {
         self.getInstallStep().dependOn(&self.addInstallArtifact(artifact).step);
     }
 
+    /// Adds an install artifact to the build
     pub fn addInstallArtifact(self: *Builder, artifact: *LibExeObjStep) *InstallArtifactStep {
         return InstallArtifactStep.create(self, artifact);
     }
@@ -606,6 +643,7 @@ pub const Builder = struct {
         return install_step;
     }
 
+    /// Adds `full_path` to the installed files list
     pub fn pushInstalledFile(self: *Builder, full_path: []const u8) void {
         _ = self.getUninstallStep();
         self.installed_files.append(full_path) catch unreachable;
@@ -648,6 +686,7 @@ pub const Builder = struct {
         }
     }
 
+    /// Returns the path of the first instance of a program in `names` in one of the `paths`
     pub fn findProgram(self: *Builder, names: []const []const u8, paths: []const []const u8) ![]const u8 {
         // TODO report error for ambiguous situations
         const exe_extension = (Target{ .Native = {} }).exeFileExt();
@@ -696,6 +735,7 @@ pub const Builder = struct {
         return error.FileNotFound;
     }
 
+    /// Executes a shell command
     pub fn exec(self: *Builder, argv: []const []const u8) ![]u8 {
         const max_output_size = 100 * 1024;
         const result = try os.ChildProcess.exec(self.allocator, argv, null, null, max_output_size);
@@ -718,6 +758,7 @@ pub const Builder = struct {
         }
     }
 
+    /// Adds a path to the search previx list
     pub fn addSearchPrefix(self: *Builder, search_prefix: []const u8) void {
         self.search_prefixes.append(search_prefix) catch unreachable;
     }

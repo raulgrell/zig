@@ -22,11 +22,13 @@ pub fn getStdErr() GetStdIoErrs!File {
     return File.openHandle(handle);
 }
 
+/// Returns the File for stdout
 pub fn getStdOut() GetStdIoErrs!File {
     const handle = if (is_windows) try os.windowsGetStdHandle(os.windows.STD_OUTPUT_HANDLE) else if (is_posix) os.posix.STDOUT_FILENO else unreachable;
     return File.openHandle(handle);
 }
 
+/// Returns the File for stdin
 pub fn getStdIn() GetStdIoErrs!File {
     const handle = if (is_windows) try os.windowsGetStdHandle(os.windows.STD_INPUT_HANDLE) else if (is_posix) os.posix.STDIN_FILENO else unreachable;
     return File.openHandle(handle);

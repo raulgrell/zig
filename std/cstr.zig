@@ -4,17 +4,20 @@ const debug = std.debug;
 const mem = std.mem;
 const assert = debug.assert;
 
+/// Returns the line separator for the current platform
 pub const line_sep = switch (builtin.os) {
     builtin.Os.windows => "\r\n",
     else => "\n",
 };
 
+/// Returns the length of a null terminated string.
 pub fn len(ptr: [*]const u8) usize {
     var count: usize = 0;
     while (ptr[count] != 0) : (count += 1) {}
     return count;
 }
 
+/// Compares two null terminated strings
 pub fn cmp(a: [*]const u8, b: [*]const u8) i8 {
     var index: usize = 0;
     while (a[index] == b[index] and a[index] != 0) : (index += 1) {}
@@ -27,10 +30,12 @@ pub fn cmp(a: [*]const u8, b: [*]const u8) i8 {
     }
 }
 
+/// Returns a const slice containing `str`
 pub fn toSliceConst(str: [*]const u8) []const u8 {
     return str[0..len(str)];
 }
 
+/// Returns a slice containing `str`
 pub fn toSlice(str: [*]u8) []u8 {
     return str[0..len(str)];
 }
@@ -101,6 +106,7 @@ pub const NullTerminated2DArray = struct {
         };
     }
 
+    /// Deinitializes the array
     pub fn deinit(self: *NullTerminated2DArray) void {
         const buf = @ptrCast([*]u8, self.ptr);
         self.allocator.free(buf[0..self.byte_count]);

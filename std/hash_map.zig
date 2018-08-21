@@ -49,6 +49,7 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             // used to detect concurrent modification
             initial_modification_count: debug_u32,
 
+            /// Returns the next KV in the iterator or null if it does not exist
             pub fn next(it: *Iterator) ?*KV {
                 if (want_modification_safety) {
                     assert(it.initial_modification_count == it.hm.modification_count); // concurrent modification
@@ -65,7 +66,7 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
                 unreachable; // no next item
             }
 
-            // Reset the iterator to the initial index
+            /// Resets the iterator to the initial index
             pub fn reset(it: *Iterator) void {
                 it.count = 0;
                 it.index = 0;
@@ -74,6 +75,7 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             }
         };
 
+        /// Initializes a map that uses `allocator` to manage its memory
         pub fn init(allocator: *Allocator) Self {
             return Self{
                 .entries = []Entry{},
@@ -84,10 +86,12 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             };
         }
 
+        /// Frees all the memory in the map
         pub fn deinit(hm: Self) void {
             hm.allocator.free(hm.entries);
         }
 
+        /// Removes all entries from the map without deallocating the memory
         pub fn clear(hm: *Self) void {
             for (hm.entries) |*entry| {
                 entry.used = false;
@@ -97,6 +101,7 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             hm.incrementModificationCount();
         }
 
+        /// Returns the number of entries in the map
         pub fn count(self: Self) usize {
             return self.size;
         }
@@ -126,6 +131,7 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             };
         }
 
+        /// Ensures the map is below threshold, resizing if necessary
         fn ensureCapacity(self: *Self) !void {
             if (self.entries.len == 0) {
                 return self.initCapacity(16);
@@ -155,6 +161,7 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             return put_result.old_kv;
         }
 
+        /// Returns the KV for `key` or null if it does not exist
         pub fn get(hm: *const Self, key: K) ?*KV {
             if (hm.entries.len == 0) {
                 return null;
@@ -162,10 +169,13 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             return hm.internalGet(key);
         }
 
+        /// Returns whether the map contains an entry for `key`
         pub fn contains(hm: *const Self, key: K) bool {
             return hm.get(key) != null;
         }
 
+        /// Removes an entry from the map, returning a reference to it.
+        /// Returns null if none existed
         pub fn remove(hm: *Self, key: K) ?*KV {
             if (hm.entries.len == 0) return null;
             hm.incrementModificationCount();
@@ -198,6 +208,7 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             return null;
         }
 
+        /// Returns an iterator for the entries in the map
         pub fn iterator(hm: *const Self) Iterator {
             return Iterator{
                 .hm = hm,
@@ -207,6 +218,7 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             };
         }
 
+        /// Returns a copy of the map, or an error if allocation failed
         pub fn clone(self: Self) !Self {
             var other = Self.init(self.allocator);
             try other.initCapacity(self.entries.len);
@@ -217,6 +229,7 @@ pub fn HashMap(comptime K: type, comptime V: type, comptime hash: fn (key: K) u3
             return other;
         }
 
+        /// Initializes the map, allocating memory for `capacity`
         fn initCapacity(hm: *Self, capacity: usize) !void {
             hm.entries = try hm.allocator.alloc(Entry, capacity);
             hm.size = 0;

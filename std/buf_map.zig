@@ -11,11 +11,14 @@ pub const BufMap = struct {
 
     const BufMapHashMap = HashMap([]const u8, []const u8, mem.hash_slice_u8, mem.eql_slice_u8);
 
+    /// Initializes a map that manages its memory using `allocator`.
+    /// Deinitialize with `deinit` or use `toOwnedSlice`.
     pub fn init(allocator: *Allocator) BufMap {
         var self = BufMap{ .hash_map = BufMapHashMap.init(allocator) };
         return self;
     }
 
+    /// Removes and frees all entries from the map
     pub fn deinit(self: *const BufMap) void {
         var it = self.hash_map.iterator();
         while (true) {
@@ -27,6 +30,7 @@ pub const BufMap = struct {
         self.hash_map.deinit();
     }
 
+    /// Sets the the value of the entry for `key` to `value`
     pub fn set(self: *BufMap, key: []const u8, value: []const u8) !void {
         self.delete(key);
         const key_copy = try self.copy(key);
@@ -36,23 +40,32 @@ pub const BufMap = struct {
         _ = try self.hash_map.put(key_copy, value_copy);
     }
 
+    /// Returns the value of the entry for `key` or null if it does not exist
     pub fn get(self: *const BufMap, key: []const u8) ?[]const u8 {
         const entry = self.hash_map.get(key) orelse return null;
         return entry.value;
     }
 
+    /// Deletes the entry for `key`
     pub fn delete(self: *BufMap, key: []const u8) void {
         const entry = self.hash_map.remove(key) orelse return;
         self.free(entry.key);
         self.free(entry.value);
     }
 
+    /// Returns the number of entries in the map
     pub fn count(self: *const BufMap) usize {
         return self.hash_map.count();
     }
 
+    /// Returns an iterator for the entries in the map
     pub fn iterator(self: *const BufMap) BufMapHashMap.Iterator {
         return self.hash_map.iterator();
+    }
+
+    /// Returns the allocator used by the map
+    pub fn allocator(self: *const BufSet) *Allocator {
+        return self.hash_map.allocator;
     }
 
     fn free(self: *const BufMap, value: []const u8) void {
